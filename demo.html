@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>シフトマル | シフト作成デモ</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700;900&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #14181f;
+    --ink-soft: #5b6472;
+    --bg: #f6f7fb;
+    --card: #ffffff;
+    --line: #e4e7ee;
+    --primary: #3454d1;
+    --primary-dark: #2740a8;
+    --accent: #14b8a6;
+    --off: #c0524a;
+    --off-bg: #fdeceb;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: "Noto Sans JP", sans-serif; color: var(--ink); background: var(--bg);
+  }
+  .app { display: flex; min-height: 100vh; }
+
+  /* Sidebar */
+  .sidebar {
+    width: 240px; flex-shrink: 0; background: #14181f; color: #cfd3dc;
+    padding: 22px 18px; display: flex; flex-direction: column;
+  }
+  .sidebar .logo { display:flex; align-items:center; gap:10px; color:#fff; font-weight:900; font-size:16px; margin-bottom: 34px; }
+  .logo-mark { width: 26px; height: 26px; border-radius: 7px; background: linear-gradient(135deg, var(--primary), var(--accent)); }
+  .side-section { font-size: 11px; letter-spacing: 0.08em; color: #7b8291; margin: 18px 0 10px; }
+  .side-link { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border-radius: 8px; font-size: 13.5px; cursor: pointer; }
+  .side-link.active, .side-link:hover { background: rgba(255,255,255,0.08); color: #fff; }
+  .side-store { margin-top: auto; padding-top: 16px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 12px; color: #8b93a3; }
+  .side-store b { display:block; color:#fff; font-size: 13px; margin-bottom: 3px; }
+
+  /* Main */
+  .main { flex: 1; padding: 26px 32px 60px; overflow-x: auto; }
+  .topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 22px; flex-wrap: wrap; gap: 12px; }
+  .topbar h1 { font-size: 20px; margin: 0; }
+  .topbar .sub { font-size: 12.5px; color: var(--ink-soft); margin-top: 4px; }
+  .week-nav { display: flex; align-items: center; gap: 10px; }
+  .week-nav button {
+    width: 32px; height: 32px; border-radius: 8px; border: 1px solid var(--line); background: #fff; cursor: pointer; font-size: 14px;
+  }
+  .week-label { font-size: 13.5px; font-weight: 700; min-width: 130px; text-align: center; }
+
+  .toolbar { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+  .btn { padding: 9px 16px; border-radius: 8px; font-size: 13px; font-weight: 700; border: 1px solid var(--line); background: #fff; cursor: pointer; }
+  .btn-primary { background: var(--primary); color: #fff; border-color: var(--primary); }
+  .btn-primary:hover { background: var(--primary-dark); }
+  .btn:hover { border-color: var(--primary); color: var(--primary); }
+  .btn-primary:hover { color: #fff; }
+
+  .legend { display: flex; gap: 16px; font-size: 12px; color: var(--ink-soft); margin-bottom: 14px; flex-wrap: wrap; }
+  .legend span { display:inline-flex; align-items:center; gap:6px; }
+  .dot { width: 10px; height: 10px; border-radius: 3px; display:inline-block; }
+
+  /* Calendar grid */
+  .cal-wrap { background: var(--card); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+  table.cal { border-collapse: collapse; width: 100%; min-width: 760px; }
+  table.cal th, table.cal td { border: 1px solid var(--line); padding: 0; }
+  table.cal th {
+    background: #f2f4fa; font-size: 12px; color: var(--ink-soft); font-weight: 700; padding: 10px 6px; text-align: center;
+  }
+  table.cal td.staff-cell {
+    padding: 10px 12px; font-size: 13px; font-weight: 700; background: #fafbfe; white-space: nowrap;
+  }
+  table.cal td.staff-cell .role { display:block; font-size: 10.5px; font-weight: 400; color: var(--ink-soft); }
+
+  .shift-cell {
+    width: 90px; height: 54px; text-align: center; vertical-align: middle; cursor: pointer; user-select: none;
+    font-size: 12px; font-weight: 700; transition: background 0.1s;
+  }
+  .shift-cell:hover { background: #f2f4fa; }
+  .shift-cell.early { background: #e8ecfb; color: var(--primary-dark); }
+  .shift-cell.late { background: #e6f7f3; color: #0f7a63; }
+  .shift-cell.off { background: var(--off-bg); color: var(--off); }
+  .shift-cell small { display: block; font-weight: 400; font-size: 10px; opacity: 0.8; }
+
+  /* Requests panel */
+  .panel { background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 20px; margin-top: 24px; }
+  .panel h2 { font-size: 15px; margin: 0 0 4px; }
+  .panel .sub { font-size: 12px; color: var(--ink-soft); margin-bottom: 16px; }
+  .req-row {
+    display: flex; align-items: center; gap: 14px; padding: 12px 0; border-top: 1px solid var(--line); font-size: 13px;
+  }
+  .req-row:first-of-type { border-top: none; }
+  .req-avatar { width: 30px; height: 30px; border-radius: 50%; background: #e8ecfb; color: var(--primary); font-weight: 700; font-size: 12px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .req-body b { display:block; }
+  .req-body span { font-size: 11.5px; color: var(--ink-soft); }
+  .req-actions { margin-left: auto; display: flex; gap: 8px; }
+  .req-actions button { padding: 6px 12px; font-size: 12px; border-radius: 6px; border: 1px solid var(--line); background: #fff; cursor: pointer; }
+  .req-actions .approve { border-color: var(--accent); color: #0f7a63; }
+  .req-actions .approve:hover { background: #e6f7f3; }
+  .req-actions .decline:hover { background: var(--off-bg); border-color: var(--off); color: var(--off); }
+  .req-row.done { opacity: 0.45; }
+  .req-status { font-size: 11.5px; font-weight: 700; margin-left: auto; }
+  .req-status.approved { color: #0f7a63; }
+  .req-status.declined { color: var(--off); }
+
+  .cost-badge { display:inline-block; margin-top: 4px; font-size: 12px; color: var(--ink-soft); }
+  .cost-badge b { color: var(--ink); }
+
+  @media (max-width: 860px) {
+    .sidebar { display: none; }
+    .main { padding: 20px 16px 50px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="app">
+  <aside class="sidebar">
+    <div class="logo"><span class="logo-mark"></span>シフトマル</div>
+    <a href="index.html" style="display:block; font-size:12px; color:#8b93a3; text-decoration:none; margin:-24px 0 24px;">← サイトトップへ戻る</a>
+    <div class="side-section">メニュー</div>
+    <div class="side-link active">📅 シフト作成</div>
+    <div class="side-link">👥 スタッフ管理</div>
+    <div class="side-link">📨 申請一覧</div>
+    <div class="side-link">💰 人件費</div>
+    <div class="side-link">⚙️ 設定</div>
+    <div class="side-store">
+      <b>サンプル食堂 渋谷店</b>
+      無料トライアル中（残り12日）
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="topbar">
+      <div>
+        <h1>シフト作成 — サンプル食堂 渋谷店</h1>
+        <div class="sub">セルをクリックすると「早番→遅番→休み→未設定」の順で切り替わります</div>
+      </div>
+      <div class="week-nav">
+        <button id="prevWeek">‹</button>
+        <span class="week-label" id="weekLabel">9/8（月）〜9/14（日）</span>
+        <button id="nextWeek">›</button>
+      </div>
+    </div>
+
+    <div class="toolbar">
+      <button class="btn btn-primary" id="autoFillBtn">✨ 自動でシフトを組む</button>
+      <button class="btn" id="clearBtn">クリア</button>
+      <button class="btn" id="shareBtn">スタッフに共有する</button>
+    </div>
+
+    <div class="legend">
+      <span><span class="dot" style="background:#3454d1;"></span>早番</span>
+      <span><span class="dot" style="background:#14b8a6;"></span>遅番</span>
+      <span><span class="dot" style="background:#c0524a;"></span>休み</span>
+      <span class="cost-badge">今週の想定人件費：<b id="costTotal">¥0</b></span>
+    </div>
+
+    <div class="cal-wrap">
+      <table class="cal" id="calTable">
+        <thead>
+          <tr>
+            <th style="text-align:left; padding-left:14px;">スタッフ</th>
+            <th>月</th><th>火</th><th>水</th><th>木</th><th>金</th><th>土</th><th>日</th>
+          </tr>
+        </thead>
+        <tbody id="calBody"></tbody>
+      </table>
+    </div>
+
+    <div class="panel">
+      <h2>スタッフからの申請</h2>
+      <div class="sub">休み希望・シフト交代の申請をここで承認・却下できます</div>
+      <div id="reqList"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+  const staff = [
+    { name: "田中 美咲", role: "ホール", wage: 1100 },
+    { name: "佐藤 健太", role: "キッチン", wage: 1200 },
+    { name: "鈴木 玲奈", role: "ホール", wage: 1100 },
+    { name: "高橋 大輔", role: "キッチン", wage: 1250 },
+  ];
+  const days = ["月","火","水","木","金","土","日"];
+  const states = [null, "early", "late", "off"]; // クリックで巡回
+  const stateLabel = { early: "早番<small>9-17</small>", late: "遅番<small>13-22</small>", off: "休み<small></small>" };
+  const stateHours = { early: 8, late: 9, off: 0 };
+
+  // 初期シフトデータ（サンプル）
+  let shiftData = {
+    0: ["early","early","off","late","early","early","off"],
+    1: ["off","late","late","early","late","off","early"],
+    2: ["late","off","early","early","off","late","late"],
+    3: ["early","early","late","off","early","off","early"],
+  };
+
+  function renderCalendar() {
+    const body = document.getElementById('calBody');
+    body.innerHTML = '';
+    staff.forEach((s, si) => {
+      const tr = document.createElement('tr');
+      const staffTd = document.createElement('td');
+      staffTd.className = 'staff-cell';
+      staffTd.innerHTML = `${s.name}<span class="role">${s.role}・時給¥${s.wage}</span>`;
+      tr.appendChild(staffTd);
+
+      days.forEach((d, di) => {
+        const td = document.createElement('td');
+        const cur = shiftData[si][di];
+        td.className = 'shift-cell' + (cur ? ' ' + cur : '');
+        td.innerHTML = cur ? stateLabel[cur] : '';
+        td.addEventListener('click', () => {
+          const idx = states.indexOf(cur);
+          const next = states[(idx + 1) % states.length];
+          shiftData[si][di] = next;
+          renderCalendar();
+        });
+        tr.appendChild(td);
+      });
+      body.appendChild(tr);
+    });
+    updateCost();
+  }
+
+  function updateCost() {
+    let total = 0;
+    staff.forEach((s, si) => {
+      shiftData[si].forEach(st => {
+        if (st && st !== 'off') total += stateHours[st] * s.wage;
+      });
+    });
+    document.getElementById('costTotal').textContent = '¥' + total.toLocaleString();
+  }
+
+  document.getElementById('autoFillBtn').addEventListener('click', () => {
+    const pattern = ["early","late","off"];
+    staff.forEach((s, si) => {
+      shiftData[si] = days.map((_, di) => pattern[(si + di) % pattern.length]);
+    });
+    renderCalendar();
+  });
+
+  document.getElementById('clearBtn').addEventListener('click', () => {
+    staff.forEach((s, si) => { shiftData[si] = days.map(() => null); });
+    renderCalendar();
+  });
+
+  document.getElementById('shareBtn').addEventListener('click', () => {
+    alert('（デモ）スタッフ全員にシフト確定の通知を送信しました。');
+  });
+
+  let weekOffset = 0;
+  document.getElementById('prevWeek').addEventListener('click', () => { weekOffset--; updateWeekLabel(); });
+  document.getElementById('nextWeek').addEventListener('click', () => { weekOffset++; updateWeekLabel(); });
+  function updateWeekLabel() {
+    const labels = ["9/1（月）〜9/7（日）","9/8（月）〜9/14（日）","9/15（月）〜9/21（日）"];
+    const idx = Math.max(0, Math.min(labels.length - 1, 1 + weekOffset));
+    document.getElementById('weekLabel').textContent = labels[idx];
+  }
+
+  // 申請一覧デモ
+  const requests = [
+    { name: "田中 美咲", detail: "9/12（金）を休みにしたい", status: null },
+    { name: "高橋 大輔", detail: "9/10（水）を鈴木さんと交代したい", status: null },
+    { name: "佐藤 健太", detail: "9/14（日）の遅番に入りたい", status: null },
+  ];
+
+  function renderRequests() {
+    const list = document.getElementById('reqList');
+    list.innerHTML = '';
+    requests.forEach((r, i) => {
+      const row = document.createElement('div');
+      row.className = 'req-row' + (r.status ? ' done' : '');
+      const initial = r.name[0];
+      row.innerHTML = `
+        <div class="req-avatar">${initial}</div>
+        <div class="req-body"><b>${r.name}</b><span>${r.detail}</span></div>
+        ${ r.status
+          ? `<div class="req-status ${r.status}">${r.status === 'approved' ? '承認済み' : '却下'}</div>`
+          : `<div class="req-actions">
+               <button class="approve" data-i="${i}" data-act="approve">承認</button>
+               <button class="decline" data-i="${i}" data-act="decline">却下</button>
+             </div>`
+        }
+      `;
+      list.appendChild(row);
+    });
+    list.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const i = +btn.dataset.i;
+        requests[i].status = btn.dataset.act === 'approve' ? 'approved' : 'declined';
+        renderRequests();
+      });
+    });
+  }
+
+  renderCalendar();
+  renderRequests();
+</script>
+
+</body>
+</html>
